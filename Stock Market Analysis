@@ -1,0 +1,130 @@
+#_ Stock_Market_Trend_Analysis
+
+# Importing Required Libraries 
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+# Getting & Reading the File Path 
+file = "C:\\Users\\Lenovo ThinkPad T450\\Desktop\\ABNB.csv"
+
+# Making a Data Frame (Df)
+
+df = pd.read_csv(file)
+df.shape
+
+#Basic information
+
+df.info()
+
+#Describe the data
+
+df.describe()
+
+
+# Reading the Head of the Df
+
+df.head()
+
+# Checking the Shape of Df
+df.shape
+
+df.isnull().sum()
+
+# Checking the Null Values
+
+df.isnull().values.any()
+
+# Drop Null Values Rows from the Dataframe
+
+df.dropna(axis=0, inplace=True)
+
+df.shape
+
+# Removing Duplicates from the Dataframe 
+df.drop_duplicates(inplace=True)
+
+
+# Checking the Data Types of Each Column
+df.dtypes
+
+# Remove extra spaces from the column names
+df.columns = df.columns.str.strip()
+
+
+# Calculate the correlation of value with month
+corr = df['Month'].corr(df['Close'])
+
+# Print the correlation coefficient
+print(f"The correlation coefficient between month and value is {corr:.2f}")
+
+
+# Gaph for Checking the Data Distribution 
+
+plt.hist(df['Close'], bins=5, color='blue', edgecolor='black')
+
+# Name the Table and the Axis
+plt.title("Data_Distribution_Graph")
+plt.xlabel('Value')
+plt.ylabel('Frequency')
+
+plt.show()
+
+
+# Stripping the Column Name
+new_column_names = {old_name: old_name.strip() for old_name in df.columns}
+
+# rename the columns using the dictionary
+df = df.rename(columns=new_column_names)
+
+# Checking the Relationshipo Between Month and the Closing Price
+
+import seaborn as sns
+sns.lmplot(x='Month', y='Close', data=df)
+
+# set the title
+plt.title('Linear Regression Chart')
+
+# show the plot
+plt.show()
+
+# BoxPlot for Finding the Values Classification
+
+plt.boxplot(df['Close'].values)
+
+plt.title("Closing_Average and Variabele")
+plt.ylabel("Values")
+
+plt.show()
+
+df['Close'].plot(kind='line')
+
+df['Close'].mean()
+
+df['Close'].min()
+
+df['Close'].max()
+
+df['bin'] = pd.cut(df['Close'], bins=[89, 109, 159, 220, 300], labels=['Low', 'Medium', 'Average', 'High'])
+
+df
+
+# Grouping the Market Close and Checking the Most Frequent Value
+
+grouped = df.groupby('bin').sum()
+
+plt.bar(grouped.index, grouped['Close'])
+
+# Add axis labels and a title
+plt.xlabel('Category')
+plt.ylabel('Sum of Values')
+plt.title('Bar Chart of Sum of Values by Category')
+
+# Show the chart
+plt.show()
+
+
+
+
+
