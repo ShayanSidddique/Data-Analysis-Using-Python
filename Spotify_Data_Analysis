@@ -1,0 +1,61 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df_Tracks = pd.read_csv("C:\\Users\\Lenovo ThinkPad T450\\Desktop\\archive\\SpotifyFeatures.csv")
+
+# Checking the Header of the Dataset
+df_Tracks.head()
+
+# Checking the Null Values in the Datset
+df_Tracks.isnull().sum()
+
+# Checking the Datatypes and the the Other Info Related Dataset
+df_Tracks.info()
+
+# Check the Least Popularity Song on Spotify
+sorted_df = df_Tracks.sort_values("popularity", ascending=True).head(10)
+sorted_df
+
+# Descrpitive Statistics
+df_Tracks.describe().transpose()
+
+# 10 Most Popular Song on Spotify
+Most_Popular_Song = df_Tracks.query("popularity>90", inplace=False).sort_values('popularity', ascending= False)
+Most_Popular_Song[:10]
+
+# Checking the INdex Location of the Dataset
+df_Tracks[['artist_name']].iloc[2]
+
+df_Tracks['duration_ms'] = df_Tracks['duration_ms'].apply(lambda x: round(x/1000))
+df_Tracks.drop('duration_ms', inplace=True, axis=1)
+
+# Correlation Map
+corr_df = df_Tracks.corr(method="pearson")
+plt.figure(figsize=(10,5))
+heatmap = sns.heatmap(corr_df, annot=True, fmt=".1g", vmin=-1, vmax=1, center=0, cmap="inferno", linewidths=1, linecolor="Black")
+heatmap.set_title("correlation heatmap between Variables")
+heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=90)
+
+# Regression Plot 
+plt.Figure(figsize=(10,5))
+sns.regplot(data = df_Tracks, y= "loudness", x= "energy", color= "b").set(title = "Loudness and Energy Relation")
+
+# Regression Plot 
+plt.Figure(figsize=(10,5))
+sns.regplot(data = df_Tracks, y= "popularity", x= "loudness", color= "c").set(title = "Loudness and Popularity Relation")
+
+plt.hist(df_Tracks["popularity"], bins=4, color="c", edgecolor='black')
+plt.title("Popularity_Data_Distribution_Graph")
+plt.xlabel('Value')
+plt.ylabel('Frequency')
+
+plt.show()
+
+
+df_Tracks.plot(x = "energy", y = "popularity", kind="line")
+plt.xlabel("Energy")
+plt.ylabel("tempo")
+plt.title("Energy and Energy Relation")
+
