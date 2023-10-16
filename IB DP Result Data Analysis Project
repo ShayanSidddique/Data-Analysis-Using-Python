@@ -1,0 +1,140 @@
+# Sheet 2019
+import pandas as pd
+
+file = "D:\Reporting\IB-DP Results Dashboard\IB DP Results.xlsx"
+
+df_2019 = pd.read_excel(file, sheet_name='2019', dtype={'Grade': str})
+df_2019.rename(columns={
+    "Full Name": "Name",
+    "Personal Code": "Personal code",
+    "Regular/Core/Regular/Additional Subject": "Total POINTS/Core/Regular/Additional Subject",
+    "Subject": "Subjects"
+}, inplace=True)
+df_2019 = df_2019.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+df_2019.dtypes
+
+# Sheet 2020
+
+df_2020 = pd.read_excel(file, sheet_name='2020', dtype={'Grade': str})
+df_2020 = df_2020.rename(columns={'Full Name':'Name',"Personal Code":"Personal code","Regular/Core/Regular/Additional Subject":"Total POINTS/Core/Regular/Additional Subject", "Subject": "Subjects"})
+df_2020 = df_2020.dropna(subset=['Year'])
+df_2020 = df_2020.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+df_2020.dtypes
+
+# Sheet 2021
+
+df_2021 = pd.read_excel(file, sheet_name='2021', dtype={'Grade': str})
+df_2021 = df_2021.rename(columns={'Result:': 'Result', 'Regular/Core/Regular/Additional Subject':'Total POINTS/Core/Regular/Additional Subject'})
+df_2021 = df_2021.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+df_2021.dtypes
+
+# Sheet 2022
+
+df_2022 = pd.read_excel(file, sheet_name='2022', dtype={'Grade': str})
+df_2022 = df_2022.rename(columns={'Result:': 'Result'})
+df_2022 = df_2022.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+df_2022 = df_2022.dropna(subset=['Name'])
+df_2022 = df_2022.rename(columns={'TOTAL POINTS/Core/Regular/Additional Subject':"Total POINTS/Core/Regular/Additional Subject"})
+df_2022.dtypes
+
+# Sheet 2023
+
+df_2023 = pd.read_excel(file, sheet_name='2023', dtype={'Grade': str})
+df_2023 = df_2023.rename(columns={'Result:': 'Result', "EE/TOK points":"EE/TOK POINTS", "Total Points":"TOTAL POINTS",'TOTAL POINTS/Core/Regular/Additional Subject':"Total POINTS/Core/Regular/Additional Subject"})
+df_2023 = df_2023.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+df_2023 = df_2023.dropna(subset='Name')
+df_2023.dtypes
+
+
+# Total School Information
+School_Info = pd.read_excel(r'D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx', sheet_name="Unique Branch Info")
+School_Info = School_Info.rename(columns= {'Branch ID': 'School ID'})
+School_Info = School_Info.rename(columns= {'Branch Name': 'School'})
+School_Info.sort_values(by='School ID')
+School_Info
+
+
+# Final View for Dashboard
+
+import numpy as np
+
+data = pd.concat([df_2019, df_2020, df_2021, df_2022, df_2023])
+#data["Name1"] = data['Name'].str.split(",", expand=True)[0]
+#data["Name2"] = data['Name'].str.split(",", expand=True)[1]
+data = data.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+#data = data.drop("Name", axis=1)
+#data["Name"] = data['Name1']+" "+data['Name2']
+#data = data.drop(columns=["Name1", "Name2"])
+data = data.apply(lambda col: col.str.title() if col.dtype == "object" else col)
+data['Code'] = data['Code'].fillna(0).astype(int)
+Merged_data = data.merge(School_Info, left_on="Code", right_on="School ID", how='left')
+Merged_data['School_y'] = Merged_data['School_y'].str.replace("BCP", "")
+Merged_data.rename(columns={'School_y': "Branch Name"}, inplace=True)
+Merged_data = Merged_data.drop(columns=["BCP Campuses", "Code", "School_x"])
+Merged_data.to_csv("D:\Reporting\IB-DP Results Dashboard\Ex.csv")
+def Grade_Count(Grade):
+    if Grade == "A":
+        return 'A'
+    elif Grade == "B":
+        return 'B'
+    elif Grade == "C":
+        return "C"
+    elif Grade == "D":
+        "D"
+    elif Grade == "E":
+        return "E"
+    elif Grade == "N":
+        return "N"
+    else:
+        "NA"
+Merged_data["Grade Criteria 2"] = Merged_data["Grade"].apply(Grade_Count)
+Merged_data["Grade"] = Merged_data["Grade"].replace(["A", "B", "C", "D", "E", "N", "No Result"], [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+#Merged_data = Merged_data[Merged_data["Subjects"] != "Ee/Tok Points"]
+#Merged_data = Merged_data[Merged_data["Subjects"] != "Total Points"]
+Merged_data.rename(columns={"Subjects": "Subject"}, inplace=True)
+Merged_data["School ID"]
+Merged_data = Merged_data.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+Merged_data["Subject"] = Merged_data['Subject'].astype(str)
+
+def Medium(row):
+    Subject = row['Subject']
+    if 'English' in Subject or 'ENGLISH' in Subject or 'Engl' in Subject or 'Engli' in Subject:
+        return 'English'
+    elif 'French' in Subject or 'FRENCH' in Subject:
+        return 'French'
+    elif 'Spanish' in Subject or 'SPANISH' in Subject:
+        return 'Spanish'
+    elif 'German' in Subject or 'GERMAN' in Subject:
+        return 'Urdu'
+    elif 'Urdu' in Subject or 'URDU' in Subject:
+        return 'Urdu'
+    elif 'Arabic' in Subject or 'ARABIC' in Subject:
+        return 'Arabic'
+    elif 'Portuguese' in Subject or 'PORTUGUESE' in Subject:
+        return 'Portuguese'
+    elif 'ENGL' in Subject or 'ENGLI' in Subject:
+        return 'English'
+    elif 'Mandarin' in Subject or 'MANDARIN' in Subject:
+        return 'Mandarin'
+    else:
+        "NA"
+Merged_data["Medium"] = Merged_data.apply(Medium, axis=1)
+Merged_data
+Merged_data['Subject Name'] = Merged_data['Subject'].apply(lambda x: ' '.join(x.split()[:2]))
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace(':', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('\.', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('SL', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('EE', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('Lang', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('TK', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('in', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('HL', '', regex=True)
+Merged_data['Subject Name'] = Merged_data['Subject Name'].replace('AND', '', regex=True)
+Merged_data["Subject Name"] = Merged_data["Subject Name"].replace("Total Pots","Total Points", regex=True)
+#Merged_data = Merged_data[~Merged_data['Category'].isin(['Anticipated'])]
+Merged_data.dropna(subset=['Year'], inplace=True)
+Merged_data['Name'] = Merged_data['Name'].replace(',','', regex=True)
+Cols_Order = ["Region", "Province", "Cluster", "Cities", "School ID", "Branch Name", "Year", "Personal code", "Name", "Gender", "Category", "Result", "Subject", "TOTAL POINTS/Core/HL/SL", "Total POINTS/Core/Regular/Additional Subject", "Grade", "Global Average", "Grade Criteria 2", "Medium", "Subject Name"]
+Merged_data = Merged_data[Cols_Order]
+Merged_data
+Merged_data.to_csv(r"D:\Reporting\IB-DP Results Dashboard\Ex.csv", index=False)
