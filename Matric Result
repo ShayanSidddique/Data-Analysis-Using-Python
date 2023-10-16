@@ -1,0 +1,94 @@
+#Total Marks Table
+import pandas as pd
+file = r"D:\Reporting\Matric Results 2022 - Updated\Matric Result 2022 - Consolidated.xlsx"
+
+Subject_Marks = pd.read_excel(file, sheet_name='Consolidated Result')
+Subject_Marks.drop(Subject_Marks.columns[:3], axis=1, inplace=True)
+Subject_Marks.drop(1, inplace=True)
+Sub_Total_Marks = Subject_Marks.head(2).transpose()
+Sub_Total_Marks.columns= ['Subject Total Marks','Subject']
+Sub_Total_Marks = Sub_Total_Marks.drop(Sub_Total_Marks.index[0])
+Sub_Total_Marks = Sub_Total_Marks.drop(Sub_Total_Marks.index[19])
+Sub_Total_Marks = Sub_Total_Marks.drop(Sub_Total_Marks.index[17])
+Sub_Total_Marks = Sub_Total_Marks.drop(Sub_Total_Marks.index[17])
+
+Sub_Total_Marks = Sub_Total_Marks.reset_index(drop=True)
+Sub_Total_Marks
+# Total School Information
+School_Info = pd.read_excel(r'D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx', sheet_name="Unique Branch Info")
+School_Info = School_Info.rename(columns= {'Branch ID': 'School ID'})
+School_Info = School_Info.rename(columns= {'Branch Name': 'School'})
+School_Info.sort_values(by='School ID')
+School_Info
+file = r"D:\Reporting\Matric Results 2022 - Updated\Matric Result 2022 - Consolidated.xlsx"
+df = pd.read_excel(file, sheet_name='Consolidated Result', header=3)
+df = pd.melt(df, id_vars=["Region", "Branch Code", "Branch Name", "Student Name", "Total Marks", "Marks Obtained", "%age"], var_name='Subject', value_name='Subject Marks Obtained')
+df = df.dropna(subset=['Subject Marks Obtained'])
+values_to_drop = ['-', 'F', 'Absent', '--']
+df = df[~df['Subject Marks Obtained'].isin(values_to_drop)]
+df.reset_index(drop=True, inplace=True)
+Merged = df.merge(Sub_Total_Marks[["Subject", "Subject Total Marks"]], on="Subject", how='left')
+Cols_Ordr = ["Region", "Branch Code", "Branch Name", "Student Name", "Total Marks", "Marks Obtained", "%age", "Subject", "Subject Total Marks", "Subject Marks Obtained"]
+Merged = Merged[Cols_Ordr]
+Merged[["Subject Total Marks", "Subject Marks Obtained"]] = Merged[["Subject Total Marks", "Subject Marks Obtained"]].astype(int)
+Merged['Subjectwise_%'] = Merged['Subject Marks Obtained']/Merged['Subject Total Marks']
+df = df.dropna(subset=['Region'])
+Merged['%age']=Merged['%age'].round(3)
+Merged.rename(columns={'Branch Code':"School ID"}, inplace=True)
+Merged_Sch_Info = pd.merge(Merged,School_Info[['School ID','Province', 'Cities', 'Cluster', 'Region', 'School']], left_on='School ID', right_on='School ID', how='left')
+Merged_Sch_Info = Merged_Sch_Info.drop("Region_x", axis=1)
+Merged_Sch_Info.rename(columns={'Region_y':'Region'}, inplace=True)
+Merged_Sch_Info = Merged_Sch_Info.drop(columns=['Branch Name'])
+Merged_Sch_Info = Merged_Sch_Info.drop(columns=['%age', 'Subjectwise_%'])
+Merged_Sch_Info = Merged_Sch_Info[Merged_Sch_Info['Subject Marks Obtained']!=0]
+Merged_Sch_Info['Subtraction'] = Merged_Sch_Info['Subject Total Marks'] - Merged_Sch_Info['Subject Marks Obtained']
+Merged_Sch_Info = Merged_Sch_Info[Merged_Sch_Info['Subtraction']>=0]
+Merged_Sch_Info.sort_values(by='Subtraction')
+Merged_Sch_Info = Merged_Sch_Info.sort_values(by='Subject Marks Obtained', ascending=False)
+Merged_Sch_Info = Merged_Sch_Info.drop(columns='Subtraction')
+Merged_Sch_Info['Achieved'] = (Merged_Sch_Info['Subject Marks Obtained']/Merged_Sch_Info['Subject Total Marks']).round(2)
+Merged_Sch_Info.sort_values('Achieved', ascending=False)
+Merged_Sch_Info
+
+def assign_grade(Achieved):
+    if Achieved >= 0.8:
+        return '5'
+    elif Achieved >= 0.7:
+        return '4.5'
+    elif Achieved >= 0.6:
+        return '4'
+    elif Achieved >= 0.5:
+        return '3'
+    elif Achieved>= 0.4:
+        return '2'
+    elif Achieved >= 0.33:
+        return '1'
+    else:
+        return '0'
+    
+Merged_Sch_Info['GPA'] = Merged_Sch_Info['Achieved'].apply(assign_grade)
+def Grades(Achieved): 
+    if Achieved >= 0.8:
+        return 'A*'
+    elif Achieved >= 0.7:
+        return 'A'
+    elif Achieved >= 0.6:
+        return 'B'
+    elif Achieved >= 0.5:
+        return 'C'
+    elif Achieved>= 0.4:
+        return 'D'
+    elif Achieved >= 0.33:
+        return 'E'
+    else:
+        return 'F' 
+Merged_Sch_Info['Grades'] = Merged_Sch_Info['Achieved'].apply(Grades)
+Merged_Sch_Info.sort_values(by='Achieved', ascending=False)
+Merged_Sch_Info['Student Name'] = Merged_Sch_Info['Student Name'].str.title()
+Merged_Sch_Info['Student Name'] = Merged_Sch_Info['Student Name'].str.strip()
+Merged_Sch_Info['Subject'] = Merged_Sch_Info['Subject'].str.strip()
+Merged_Sch_Info = Merged_Sch_Info.drop(['Total Marks', 'Marks Obtained'], axis=1)
+Merged_Sch_Info['GPA'] = Merged_Sch_Info['GPA'].astype(float)
+Merged_Sch_Info.to_excel(r"D:\Reporting\Matric Results 2022 - Updated\BQ Matric Result.xlsx", index=False)
+Merged_Sch_Info
+
