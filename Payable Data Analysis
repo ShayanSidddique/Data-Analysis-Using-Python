@@ -1,3 +1,11 @@
+# Replace Last Day data with the last day file
+
+import pandas as pd
+
+data = pd.read_excel(r"D:\Reporting\Recoverables\Recoverable_students_list.xlsx")
+data.to_excel("D:\Reporting\Recoverables\BQ Recoverable Last day.xlsx", index=False)
+
+
 # Daily Net Strenght
 
 import pandas as pd
@@ -56,5 +64,26 @@ Final_Data.drop_duplicates(subset=['Student ID'], inplace=True)
 
 Recoverable_current_master = Final_Data.merge(class_wise[['Old Class','Class Category']], left_on='Class', right_on='Old Class', how='left')
 Recoverable_current_master.drop('Old Class', axis=1, inplace=True)
-Recoverable_current_master = Recoverable_current_master[(Recoverable_current_master['School ID'] != 4211) & (Recoverable_current_master['School ID'].notna())]
-Recoverable_current_master
+Recoverable_current_master = Recoverable_current_master[(Recoverable_current_master['School ID'] != 4211) & (Recoverable_current_master['School ID'].notna()) & (Recoverable_current_master['School ID'] != 220)]
+Recoverable_current_master.to_csv(r"D:\Reporting\Recoverables\Csv File\Recoverable.csv",encoding='utf-8',index=False)
+
+
+# Last Day File Transformation
+
+
+last_day_recoverable = pd.read_excel("D:\Reporting\Recoverables\BQ Recoverable Last day.xlsx")
+last_day_recoverable = last_day_recoverable.apply(lambda col: col.strip() if col.dtypes == 'Object' else col)
+last_day_recoverable['Region Name'] = last_day_recoverable['Region Name'].replace({"Central Region": "BCR", "North Region": "BNR", "South Region": "BSR"})
+last_day_recoverable['Cluster ID'] = last_day_recoverable['Cluster ID'].astype(str)
+last_day_recoverable['Cluster Id New'] = "Cluster - "+ last_day_recoverable['Cluster ID']
+last_day_recoverable.drop(columns="Cluster ID", inplace=True)
+last_day_recoverable.rename(columns={'Cluster Id New': 'Cluster ID'}, inplace=True)
+last_day_recoverable.drop_duplicates(subset=['Student ID'], inplace=True)
+last_day_recoverable.columns = [col.strip() for col in last_day_recoverable.columns]
+
+#last_day_recoverable = last_day_recoverable.groupby(["Region Name", "Branch ID", "Branch Name", "Cluster ID"])['Student ID'].count().reset_index()
+#last_day_recoverable.rename(columns={'Student ID':"Last Day Count"}, inplace=True)
+last_day_recoverable.to_csv(r"D:\Reporting\Recoverables\Csv File\Recoverable last day.csv", encoding='utf-8', index=False)
+
+
+
