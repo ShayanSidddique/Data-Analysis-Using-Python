@@ -1,0 +1,60 @@
+# Daily Net Strenght
+
+import pandas as pd
+
+file = r"D:\Reporting\2023 - New Working\6 - Daily Net Strentgh - Working.xlsx"
+
+strenght = pd.read_excel(file, sheet_name='Daily Net Strength')
+strenght
+
+# Recoverable Raw Data
+
+file1 = r"D:\Reporting\Recoverables\Recoverable_students_list.xlsx"
+
+recoverable = pd.read_excel(file1)
+recoverable = recoverable.apply(lambda col:col.strip() if col is object else col)
+recoverable[['Start Date.1', 'Start Date.2', 'Start Date.3']] =recoverable['Start Date'].str.split('/', expand=True)
+recoverable.drop(columns='Start Date', inplace=True)
+recoverable['start Date'] = recoverable['Start Date.3'].str.cat([recoverable['Start Date.2'], recoverable['Start Date.1']], sep='-')
+recoverable.drop(columns=["Start Date.1", "Start Date.2", "Start Date.3"], inplace=True)
+recoverable.columns = [col.strip() for col in recoverable.columns]
+recoverable.rename(columns={'Branch ID': 'School ID'}, inplace=True)
+recoverable.rename(columns={'Employee Department\n_x000D_': 'Employee Department'}, inplace=True)
+recoverable.columns
+
+# Category Table Classwise
+
+Source = r"D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx"
+class_wise = pd.read_excel(Source, sheet_name='Categories Table - Class')
+class_wise
+
+
+# Recoverable Master File
+
+
+from datetime import datetime
+Branch_info = pd.read_excel(r"D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx", sheet_name='Branch Info New')
+Branch_info.rename(columns={'Branch ID': 'School ID'}, inplace=True)
+Branch_info = Branch_info[["Region", 'Cluster', 'School ID', 'Branch Name', 'Cities', 'Province', 'BCP Campuses']]
+Branch_info.drop_duplicates(subset=['School ID'], inplace=True)
+Merged = Branch_info.merge(recoverable[['School ID','Student ID', 'Name', 'Class', 'Fine', 'Total', 'Period', 'start Date', 'Pending Months', 'Employee ID','Employee Name','Employee Branch', 'Employee Designation', 'Employee Category', 'Employee Department']],on='School ID',how='left')
+Merged['Pending Dues Category'] = Merged['Total'].apply(lambda x: "1-<=20,000" if x <= 20000 else (
+    "2-<=60,000" if x <= 60000 else (
+    "3-<=100,000" if x <= 100000 else (
+    "4-<=150,000" if x <= 150000 else "5->200000"))))
+
+Merged['Employee Student'] = Merged['Employee ID'].apply(lambda x: 'Non Employee Student' if pd.isnull(x) else 'Employee Student')
+Final_Data = Merged.merge(strenght[['Student ID', 'Admission Date']], on = 'Student ID', how='left')
+Final_Data['Today Date'] = datetime.now().strftime('%Y-%m-%d')
+Final_Data['Today Date'] = pd.to_datetime(Final_Data['Today Date'])
+Final_Data['Admission Date'] = pd.to_datetime(Final_Data['Admission Date'])
+
+Final_Data['Life Cycle'] = round((Final_Data['Today Date'] - Final_Data['Admission Date']).dt.days, 0)
+#Final_Data['Life Cycle'] = Final_Data['Life Cycle'].astype(int)
+Final_Data['Life Cycle with BSS'] = round(Final_Data['Life Cycle']/365, 2)
+Final_Data.drop_duplicates(subset=['Student ID'], inplace=True)
+
+Recoverable_current_master = Final_Data.merge(class_wise[['Old Class','Class Category']], left_on='Class', right_on='Old Class', how='left')
+Recoverable_current_master.drop('Old Class', axis=1, inplace=True)
+Recoverable_current_master = Recoverable_current_master[(Recoverable_current_master['School ID'] != 4211) & (Recoverable_current_master['School ID'].notna())]
+Recoverable_current_master
