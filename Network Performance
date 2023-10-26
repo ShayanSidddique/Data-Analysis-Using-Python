@@ -1,0 +1,82 @@
+import requests
+import pandas as pd
+from google.cloud import bigquery
+from datetime import datetime
+import urllib3
+from decouple import config  # Import the config function
+
+# Suppress InsecureRequestWarning
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Define the function to format date
+def format_date(date_str):
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f0000').strftime('%Y-%m-%d %H:%M')
+    except ValueError:
+        raise ValueError(f"Unknown date format for {date_str}")
+
+
+# Fetch your credentials from the environment variables
+ORION_USERNAME = config("ORION_USERNAME")
+ORION_PASSWORD = config("ORION_PASSWORD")
+
+# Define the SWQL query
+query = """
+SQL Query
+"""
+
+# Define the parameters for the Orion API
+url = 'https://192.168.0.69:17894/InformationService/v3/Json/Query'
+headers = {'Content-Type': 'application/json'}
+credentials = (ORION_USERNAME, ORION_PASSWORD)  # Use the fetched credentials
+params = {'query': query}
+
+
+# Fetch data from the Orion API
+response = requests.get(url, headers=headers, auth=credentials, params=params, verify=False)
+
+# Check for successful request
+if response.status_code != 200:
+    print(f"Failed to retrieve data. Status code: {response.status_code}. Message: {response.text}")
+    exit()  # or return, depending on how you want to handle it
+
+data = response.json()['results']
+
+# Convert data to a Pandas DataFrame
+df = pd.DataFrame(data)
+
+
+
+
+# Format the date column
+df['DATE/TIME'] = df['DATE/TIME'].apply(format_date)
+df['Time_as_text'] = df['DATE/TIME'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M').strftime('%I:%M:%S %p'))
+df['Conncetivity_Status'] = df['Availability'].apply(lambda x: "Excellent ( >= 98 )" if x >= 98 else ("Good Performance ( >= 91 )" if x >= 91 else "Need Improvement ( Below 91 )"))
+df['Date'] = df['DATE/TIME'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M').strftime('%Y-%m-%d'))
+
+
+# Rename columns to match BigQuery table column names
+df = df.rename(columns={
+    "School ID": "School_ID",
+    "Branch Name": "BranchName",
+    "DATE/TIME": "DATETIME"
+    # ... add other renamings if needed ...
+})
+
+# Ensure data ordering matches BigQuery table structure
+df = df[["School_ID", "BranchName", "Cluster", "Regions", "Cities", "Province", "Availability", "DATETIME", "Time_as_text", "Conncetivity_Status", "Date", "Link Type", "ISP Vendor", "Wateen"]]
+
+# Save to UTF-8 CSV without headers
+filename = f"D:\\Reporting\\NMS Data Access\\Hourly_Connectivity.csv"
+df.to_csv(filename, index=False, encoding='utf-8-sig')
+
+file = r"D:\Reporting\NMS Data Access\Hourly_Connectivity.csv"
+df = pd.read_csv(file)
+df
+df['School_ID'] = df['School_ID'].replace({'Future-LHR': '1000', 'Energy-KHI':'10001', 'Energy-LHR':'1002', '6A/7A':'1003', '406/436/442':'1004'})
+df['Cluster'] = df['Cluster'].replace({'Clustrr-0':'Cluster- 0'})
+df['Time_as_text'] = pd.to_datetime(df['Time_as_text'], format='%I:%M:%S %p')
+# Extract the time part (hour:minute:second) and store it in a new column
+df['Time_as_text'] = df['Time_as_text'].dt.time
+filename = r"D:\Reporting\NMS Data Access\Hourly_Connectivity Master File Csv.csv"
+df.to_csv(filename, index=False, encoding='utf-8-sig')
