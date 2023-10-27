@@ -1,0 +1,160 @@
+# Replace Last Day data with the last day file
+
+import pandas as pd
+
+#data = pd.read_excel(r"D:\Reporting\Recoverables\Recoverable_students_list.xlsx")
+#data.to_excel("D:\Reporting\Recoverables\BQ Recoverable Last day.xlsx", index=False)
+
+
+# Daily Net Strenght
+
+import pandas as pd
+
+file = r"D:\Reporting\2023 - New Working\6 - Daily Net Strentgh - Working.xlsx"
+
+strenght = pd.read_excel(file, sheet_name='Daily Net Strength')
+strenght
+
+# Recoverable Raw Data
+
+file1 = r"D:\Reporting\Recoverables\Recoverable_students_list.xlsx"
+
+recoverable = pd.read_excel(file1)
+recoverable = recoverable.apply(lambda col:col.strip() if col is object else col)
+recoverable[['Start Date.1', 'Start Date.2', 'Start Date.3']] =recoverable['Start Date'].str.split('/', expand=True)
+recoverable.drop(columns='Start Date', inplace=True)
+recoverable['start Date'] = recoverable['Start Date.3'].str.cat([recoverable['Start Date.2'], recoverable['Start Date.1']], sep='-')
+recoverable.drop(columns=["Start Date.1", "Start Date.2", "Start Date.3"], inplace=True)
+recoverable.columns = [col.strip() for col in recoverable.columns]
+recoverable.rename(columns={'Branch ID': 'School ID'}, inplace=True)
+recoverable.rename(columns={'Employee Department\n_x000D_': 'Employee Department'}, inplace=True)
+recoverable.columns
+
+# Category Table Classwise
+
+Source = r"D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx"
+class_wise = pd.read_excel(Source, sheet_name='Categories Table - Class')
+class_wise
+
+
+# Recoverable Master File
+
+
+from datetime import datetime
+Branch_info = pd.read_excel(r"D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx", sheet_name='Branch Info New')
+Branch_info.rename(columns={'Branch ID': 'School ID'}, inplace=True)
+Branch_info = Branch_info[["Region", 'Cluster', 'School ID', 'Branch Name', 'Cities', 'Province', 'BCP Campuses']]
+Branch_info.drop_duplicates(subset=['School ID'], inplace=True)
+Merged = Branch_info.merge(recoverable[['School ID','Student ID', 'Name', 'Class', 'Fine', 'Total', 'Period', 'start Date', 'Pending Months', 'Employee ID','Employee Name','Employee Branch', 'Employee Designation', 'Employee Category', 'Employee Department']],on='School ID',how='left')
+Merged['Pending Dues Category'] = Merged['Total'].apply(lambda x: "1-<=20,000" if x <= 20000 else (
+    "2-<=60,000" if x <= 60000 else (
+    "3-<=100,000" if x <= 100000 else (
+    "4-<=150,000" if x <= 150000 else "5->200000"))))
+
+Merged['Employee Student'] = Merged['Employee ID'].apply(lambda x: 'Non Employee Student' if pd.isnull(x) else 'Employee Student')
+Final_Data = Merged.merge(strenght[['Student ID', 'Admission Date']], on = 'Student ID', how='left')
+Final_Data['Today Date'] = datetime.now().strftime('%Y-%m-%d')
+Final_Data['Today Date'] = pd.to_datetime(Final_Data['Today Date'])
+Final_Data['Admission Date'] = pd.to_datetime(Final_Data['Admission Date'])
+
+Final_Data['Life Cycle'] = round((Final_Data['Today Date'] - Final_Data['Admission Date']).dt.days, 0)
+#Final_Data['Life Cycle'] = Final_Data['Life Cycle'].astype(int)
+Final_Data['Life Cycle with BSS'] = round(Final_Data['Life Cycle']/365, 2)
+Final_Data.drop_duplicates(subset=['Student ID'], inplace=True)
+
+Recoverable_current_master = Final_Data.merge(class_wise[['Old Class','Class Category']], left_on='Class', right_on='Old Class', how='left')
+Recoverable_current_master.drop('Old Class', axis=1, inplace=True)
+Recoverable_current_master = Recoverable_current_master[(Recoverable_current_master['School ID'] != 4211) & (Recoverable_current_master['School ID'].notna()) & (Recoverable_current_master['School ID'] != 220) & (Recoverable_current_master['Name'].notnull())]
+Recoverable_current_master.to_csv(r"D:\Reporting\Recoverables\Csv File\Recoverable.csv",encoding='utf-8',index=False)
+
+
+# Last Day File Transformation
+
+
+#last_day_recoverable = pd.read_excel("D:\Reporting\Recoverables\Recoverable_students_list_Last Day.xlsx")
+#last_day_recoverable = last_day_recoverable.apply(lambda col: col.strip() if col.dtypes == 'Object' else col)
+#last_day_recoverable['Region Name'] = last_day_recoverable['Region Name'].replace({"Central Region": "BCR", "North Region": "BNR", "South Region": "BSR"})
+#last_day_recoverable['Cluster ID'] = last_day_recoverable['Cluster ID'].astype(str)
+#last_day_recoverable['Cluster Id New'] = "Cluster - "+ last_day_recoverable['Cluster ID']
+#last_day_recoverable.drop(columns="Cluster ID", inplace=True)
+#last_day_recoverable.rename(columns={'Cluster Id New': 'Cluster ID'}, inplace=True)
+#last_day_recoverable.columns = [col.strip() for col in last_day_recoverable.columns]
+#last_day_recoverable['Student ID'] = last_day_recoverable['Student ID'].astype(int)
+#last_day_recoverable.drop_duplicates(subset=['Student ID'], inplace=True)
+#last_day_recoverable = last_day_recoverable.groupby(["Region Name", "Branch ID", "Branch Name", "Cluster ID"])['Student ID'].count().reset_index()
+#last_day_recoverable.rename(columns={'Student ID':"Last Day Count"}, inplace=True)
+
+
+
+
+
+
+# Last Day Recoverable Raw Data
+
+
+
+
+
+last_Day = r"D:\Reporting\Recoverables\Recoverable_students_list_Last Day.xlsx"
+
+recoverable_last_day = pd.read_excel(last_Day)
+recoverable_last_day = recoverable_last_day.apply(lambda col:col.strip() if col is object else col)
+recoverable_last_day[['Start Date.1', 'Start Date.2', 'Start Date.3']] = recoverable_last_day['Start Date'].str.split('/', expand=True)
+recoverable_last_day.drop(columns='Start Date', inplace=True)
+recoverable_last_day['start Date'] = recoverable_last_day['Start Date.3'].str.cat([recoverable_last_day['Start Date.2'], recoverable_last_day['Start Date.1']], sep='-')
+recoverable_last_day.drop(columns=["Start Date.1", "Start Date.2", "Start Date.3"], inplace=True)
+recoverable_last_day.columns = [col.strip() for col in recoverable_last_day.columns]
+recoverable_last_day.rename(columns={'Branch ID': 'School ID'}, inplace=True)
+recoverable_last_day.rename(columns={'Employee Department\n_x000D_': 'Employee Department'}, inplace=True)
+recoverable_last_day.columns
+
+# Category Table Classwise
+
+Source = r"D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx"
+class_wise = pd.read_excel(Source, sheet_name='Categories Table - Class')
+class_wise
+
+Branch_info = pd.read_excel(r"D:\Reporting\2023 - New Working\Data Files\New Category Table.xlsx", sheet_name='Branch Info New')
+Branch_info.rename(columns={'Branch ID': 'School ID'}, inplace=True)
+Branch_info = Branch_info[["Region", 'Cluster', 'School ID', 'Branch Name', 'Cities', 'Province', 'BCP Campuses']]
+Branch_info.drop_duplicates(subset=['School ID'], inplace=True)
+Merged = Branch_info.merge(recoverable_last_day[['School ID','Student ID', 'Name', 'Class', 'Fine', 'Total', 'Period', 'start Date', 'Pending Months', 'Employee ID','Employee Name','Employee Branch', 'Employee Designation', 'Employee Category', 'Employee Department']],on='School ID',how='left')
+Merged['Pending Dues Category'] = Merged['Total'].apply(lambda x: "1-<=20,000" if x <= 20000 else (
+    "2-<=60,000" if x <= 60000 else (
+    "3-<=100,000" if x <= 100000 else (
+    "4-<=150,000" if x <= 150000 else "5->200000"))))
+
+Merged['Employee Student'] = Merged['Employee ID'].apply(lambda x: 'Non Employee Student' if pd.isnull(x) else 'Employee Student')
+Final_Data = Merged.merge(strenght[['Student ID', 'Admission Date']], on = 'Student ID', how='left')
+Final_Data['Today Date'] = datetime.now().strftime('%Y-%m-%d')
+Final_Data['Today Date'] = pd.to_datetime(Final_Data['Today Date'])
+Final_Data['Admission Date'] = pd.to_datetime(Final_Data['Admission Date'])
+
+Final_Data['Life Cycle'] = round((Final_Data['Today Date'] - Final_Data['Admission Date']).dt.days, 0)
+#Final_Data['Life Cycle'] = Final_Data['Life Cycle'].astype(int)
+Final_Data['Life Cycle with BSS'] = round(Final_Data['Life Cycle']/365, 2)
+Final_Data.drop_duplicates(subset=['Student ID'], inplace=True)
+
+Recoverable_current_master = Final_Data.merge(class_wise[['Old Class','Class Category']], left_on='Class', right_on='Old Class', how='left')
+Recoverable_current_master.drop('Old Class', axis=1, inplace=True)
+Recoverable_current_master = Recoverable_current_master[(Recoverable_current_master['School ID'] != 4211) & (Recoverable_current_master['School ID'].notna()) & (Recoverable_current_master['School ID'] != 220) & (Recoverable_current_master['Name'].notnull())]
+Recoverable_current_master.to_csv(r"D:\Reporting\Recoverables\Csv File\Recoverable last day.csv", encoding='utf-8', index=False)
+
+
+
+# Unique Branch Info Data Transformation
+
+consolidate = pd.read_csv("D:\Reporting\Recoverables\Csv File\Recoverable.csv")
+consolidate_data = pd.read_csv("D:\Reporting\Recoverables\Csv File\Recoverable last day.csv")
+
+Unique_branch_Info = pd.concat([consolidate, consolidate_data], ignore_index=True)
+Unique_branch_Info['UID'] = pd.concat([Unique_branch_Info['School ID'], Unique_branch_Info['Class']], axis=1).astype(str).sum(axis=1)
+Unique_branch_Info = Unique_branch_Info[['Region','Cluster','School ID', 'Branch Name', 'Cities','Province','BCP Campuses', 'Class','UID']]
+Unique_branch_Info.drop_duplicates(subset="UID",inplace=True)
+
+#Unique_branch_Info.drop(columns='UID', inplace=True)
+#Unique_branch_Info['Class'] = Unique_branch_Info['Class'].apply(lambda x: f'"{x}"')
+Unique_branch_Info.to_csv(r"D:\Reporting\Recoverables\Csv File\Unique_Branch_Info.csv", index=False)
+
+
+
