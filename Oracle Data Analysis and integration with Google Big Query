@@ -1,0 +1,74 @@
+import cx_Oracle
+
+import pandas as pd
+
+import pandas_gbq
+
+from google.cloud import bigquery
+from google.cloud.bigquery import LoadJobConfig, WriteDisposition
+
+# Connection details
+username = ##
+password = ###
+dsn = ###
+
+# Establish the connection
+connection = cx_Oracle.connect(username, password, dsn)
+
+# Create a cursor object from the connection
+cursor = connection.cursor()
+
+# Execute a query
+cursor.execute("SELECT * FROM ECA_ACTIVITY_DATA_V")
+
+# Fetch the results
+rows = cursor.fetchall()
+
+# Get column names from cursor description
+columns = [col[0] for col in cursor.description]
+
+# Convert to DataFrame
+df = pd.DataFrame(rows, columns=columns)
+
+# Don't forget to close the cursor and connection when done
+cursor.close()
+connection.close()
+
+Branch_Info = pandas_gbq.read_gbq('SELECT * FROM `sturdy-torch-338204.bops_posted_net_strength.unique_branch_info`')
+Branch_Info
+
+final_Data = df.merge(Branch_Info,left_on="BRANCH_ID", right_on="Branch_ID", how="left")
+final_Data.columns
+
+columns_to_drop = ["REGION_ID","REGION_NAME","BRANCH_ID","BR_NAME","SCHOOL_GROUP_ID","SCHOOL_GROUP_NAME","BR_ABBRV", "CATEGORY_TYPE_ID", "ACT_STATUS_ID","CENTRE_ECA", "NORTH_ECA", "SOUTH_ECA", "SCHOOL_GROUP_ID"]
+final_Data.drop(columns=columns_to_drop, inplace=True)
+final_Data
+final_Data.columns = [col.title() for col in final_Data.columns]
+
+final_Data.rename(columns={"Branch_Id": "School_ID", "Bcp_Campuses" : "BCP_Campuses", "Region": "Regions"}, inplace=True)
+final_Data
+
+column_Order = columns = [
+    'Regions','School_ID', 'Branch_Name','Cluster', 'Old_Cluster_Name',
+    'Cities', 'Province', 'BCP_Campuses','Activity_Id', 'Activity_Name', 'Category_Id', 'Category_Name',
+    'Start_Date', 'End_Date', 'Total_Students', 'Total_Amount_Received',
+    'Total_Expense', 'Balance_Amount', 'Act_Status','Received_Amount_Range', 'Rcvd_Amt_Per_Std', 'Rcvd_Amt_Range_Per_Std',
+    'Total_Students_Reg', 'Month', 'Year'
+]
+
+final_Data = final_Data[column_Order]
+
+client = bigquery.Client()
+
+# Create a job configuration to replace the table data
+
+job_config = LoadJobConfig()
+job_config.write_disposition = WriteDisposition.WRITE_TRUNCATE
+
+table_id = 'sturdy-torch-338204.ECA_Dataset.ECA_Activity'
+
+# If the table does not exist, the table is created based on the schema of the DataFrame
+job = client.load_table_from_dataframe(final_Data, table_id, job_config=job_config)
+
+# Wait for the load job to complete
+job.result()
